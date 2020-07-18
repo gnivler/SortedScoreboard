@@ -1,0 +1,5 @@
+GainedSkills
+ReadyToUpgrade
+Killed
+Wounded
+Kills
