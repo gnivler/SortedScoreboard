@@ -43,18 +43,23 @@ namespace SortedScoreboard
             try
             {
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
-                var readList = File.ReadAllLines("..\\..\\Modules\\SortedScoreboard\\mod_settings.txt").ToList();
-                // fall back to hard coded values if deserialized to null?
-                configOrder = readList.Count == 0 ? configOrder : readList;
-                // create a new list of Comparers from the string input
-                foreach (var config in configOrder)
-                {
-                    orderedPropertyInfos.Add(propertyInfoMap[config]);
-                }
             }
             catch (Exception ex)
             {
                 TaleWorlds.Library.Debug.PrintError($"SortedScoreboard encountered an exception: {ex}");
+            }
+        }
+
+        private static void ConfigureSettings()
+        {
+            var readList = File.ReadAllLines("..\\..\\Modules\\SortedScoreboard\\mod_settings.txt").ToList();
+            // fall back to hard coded values if deserialized to null?
+            configOrder = readList.Count == 0 ? configOrder : readList;
+            // create a new list of Comparers from the string input
+            orderedPropertyInfos.Clear();
+            foreach (var config in configOrder)
+            {
+                orderedPropertyInfos.Add(propertyInfoMap[config]);
             }
         }
 
@@ -63,6 +68,7 @@ namespace SortedScoreboard
         {
             private static void Postfix(SPScoreboardPartyVM __instance)
             {
+                ConfigureSettings();
                 __instance.Members.Sort(new MultiComparer());
             }
         }
@@ -72,216 +78,160 @@ namespace SortedScoreboard
             public override int Compare(SPScoreboardUnitVM x, SPScoreboardUnitVM y)
             {
                 var result = 0;
-                try
+
+                if (x == null || y == null)
                 {
-                    if (x == null || y == null)
+                    return 0;
+                }
+
+                // the source data comes from two types so this is really verbose
+                if (orderedPropertyInfos[0].Name == "GainedSkills")
+                {
+                    var X = ((IList) orderedPropertyInfos[0].GetValue(x)).Count;
+                    var Y = ((IList) orderedPropertyInfos[0].GetValue(y)).Count;
+                    result = Helper(X, Y);
+                    if (result != 0)
                     {
-                        return 0;
+                        return result;
                     }
 
-                    // the source data comes from two types so this is really verbose
-                    if (orderedPropertyInfos[0].Name == "GainedSkills")
+                    for (var i = 1; i < 5; i++)
                     {
-                        var X = ((IList) orderedPropertyInfos[0].GetValue(x)).Count;
-                        var Y = ((IList) orderedPropertyInfos[0].GetValue(y)).Count;
+                        X = (int) orderedPropertyInfos[i].GetValue(x.Score);
+                        Y = (int) orderedPropertyInfos[i].GetValue(y.Score);
                         result = Helper(X, Y);
                         if (result != 0)
                         {
                             return result;
                         }
-
-                        X = (int) orderedPropertyInfos[1].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[1].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[2].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[2].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[3].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[3].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[4].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[4].GetValue(y.Score);
-                        result = Helper(X, Y);
-                    }
-                    else if (orderedPropertyInfos[1].Name == "GainedSkills")
-                    {
-                        var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
-                        var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = ((IList) orderedPropertyInfos[1].GetValue(x)).Count;
-                        Y = ((IList) orderedPropertyInfos[1].GetValue(y)).Count;
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[2].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[2].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[3].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[3].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[4].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[4].GetValue(y.Score);
-                        result = Helper(X, Y);
-                    }
-                    else if (orderedPropertyInfos[2].Name == "GainedSkills")
-                    {
-                        var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
-                        var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[1].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[1].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = ((IList) orderedPropertyInfos[2].GetValue(x)).Count;
-                        Y = ((IList) orderedPropertyInfos[2].GetValue(y)).Count;
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[3].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[3].GetValue(y.Score);
-                        result = Helper(X, Y);
-                    }
-                    else if (orderedPropertyInfos[3].Name == "GainedSkills")
-                    {
-                        var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
-                        var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[1].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[1].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[2].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[2].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = ((IList) orderedPropertyInfos[3].GetValue(x)).Count;
-                        Y = ((IList) orderedPropertyInfos[3].GetValue(y)).Count;
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[4].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[4].GetValue(y.Score);
-                        result = Helper(X, Y);
-                    }
-                    else if (orderedPropertyInfos[4].Name == "GainedSkills")
-                    {
-                        var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
-                        var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[1].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[1].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[2].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[2].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = (int) orderedPropertyInfos[3].GetValue(x.Score);
-                        Y = (int) orderedPropertyInfos[3].GetValue(y.Score);
-                        result = Helper(X, Y);
-                        if (result != 0)
-                        {
-                            return result;
-                        }
-
-                        X = ((IList) orderedPropertyInfos[4].GetValue(x)).Count;
-                        Y = ((IList) orderedPropertyInfos[4].GetValue(y)).Count;
-                        result = Helper(X, Y);
-                    }
-
-                    static int Helper(int X, int Y)
-                    {
-                        var num = 0;
-                        if (X > Y)
-                        {
-                            num = -1;
-                        }
-
-                        if (X < Y)
-                        {
-                            num = 1;
-                        }
-
-                        return num;
                     }
                 }
-                catch (Exception ex)
+                else if (orderedPropertyInfos[1].Name == "GainedSkills")
                 {
-                    TaleWorlds.Library.Debug.PrintError($"SortedScoreboard encountered an exception: {ex}");
+                    var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
+                    var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = ((IList) orderedPropertyInfos[1].GetValue(x)).Count;
+                    Y = ((IList) orderedPropertyInfos[1].GetValue(y)).Count;
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    for (var i = 2; i < 5; i++)
+                    {
+                        X = (int) orderedPropertyInfos[i].GetValue(x.Score);
+                        Y = (int) orderedPropertyInfos[i].GetValue(y.Score);
+                        result = Helper(X, Y);
+                        if (result != 0)
+                        {
+                            return result;
+                        }
+                    }
+                }
+                else if (orderedPropertyInfos[2].Name == "GainedSkills")
+                {
+                    var X = (int) orderedPropertyInfos[0].GetValue(x.Score);
+                    var Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = (int) orderedPropertyInfos[1].GetValue(x.Score);
+                    Y = (int) orderedPropertyInfos[1].GetValue(y.Score);
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = ((IList) orderedPropertyInfos[2].GetValue(x)).Count;
+                    Y = ((IList) orderedPropertyInfos[2].GetValue(y)).Count;
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = (int) orderedPropertyInfos[3].GetValue(x.Score);
+                    Y = (int) orderedPropertyInfos[3].GetValue(y.Score);
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = (int) orderedPropertyInfos[4].GetValue(x.Score);
+                    Y = (int) orderedPropertyInfos[4].GetValue(y.Score);
+                    result = Helper(X, Y);
+                }
+                else if (orderedPropertyInfos[3].Name == "GainedSkills")
+                {
+                    int X, Y;
+                    for (var i = 0; i < 3; i++)
+                    {
+                        X = (int) orderedPropertyInfos[i].GetValue(x.Score);
+                        Y = (int) orderedPropertyInfos[i].GetValue(y.Score);
+                        result = Helper(X, Y);
+                        if (result != 0)
+                        {
+                            return result;
+                        }
+                    }
+
+                    X = ((IList) orderedPropertyInfos[3].GetValue(x)).Count;
+                    Y = ((IList) orderedPropertyInfos[3].GetValue(y)).Count;
+                    result = Helper(X, Y);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+
+                    X = (int) orderedPropertyInfos[4].GetValue(x.Score);
+                    Y = (int) orderedPropertyInfos[4].GetValue(y.Score);
+                    result = Helper(X, Y);
+                }
+                else if (orderedPropertyInfos[4].Name == "GainedSkills")
+                {
+                    int X, Y;
+                    for (var i = 0; i < 4; i++)
+                    {
+                        X = (int) orderedPropertyInfos[0].GetValue(x.Score);
+                        Y = (int) orderedPropertyInfos[0].GetValue(y.Score);
+                        result = Helper(X, Y);
+                        if (result != 0)
+                        {
+                            return result;
+                        }
+                    }
+
+                    X = ((IList) orderedPropertyInfos[4].GetValue(x)).Count;
+                    Y = ((IList) orderedPropertyInfos[4].GetValue(y)).Count;
+                    result = Helper(X, Y);
+                }
+
+                static int Helper(int X, int Y)
+                {
+                    var num = 0;
+                    if (X > Y)
+                    {
+                        num = -1;
+                    }
+
+                    if (X < Y)
+                    {
+                        num = 1;
+                    }
+
+                    return num;
                 }
 
                 return result;
