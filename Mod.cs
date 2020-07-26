@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using Newtonsoft.Json;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.MountAndBlade.ViewModelCollection.Scoreboard;
 
@@ -17,18 +19,17 @@ namespace SortedScoreboard
 {
     public class Mod : MBSubModuleBase
     {
-        private static readonly Harmony harmony = new Harmony("ca.gnivler.bannerlord.SortedScoreboard");
-        private static readonly List<PropertyInfo> orderedPropertyInfos = new List<PropertyInfo>();
-
-        private static List<string> configOrder = new List<string>
+        private static void Log(object input)
         {
-            "GainedSkills",
-            "ReadyToUpgrade",
-            "Killed",
-            "Wounded",
-            "Kills"
-        };
+            //FileLog.Log($"[SortedScoreboard][{DateTime.Now:G}] {input ?? "null"}");
+        }
 
+        private static readonly Harmony harmony = new Harmony("ca.gnivler.bannerlord.SortedScoreboard");
+        private static readonly List<PropertyInfo> PlayerOrderedPropertyInfos = new List<PropertyInfo>();
+        private static readonly List<PropertyInfo> EnemyOrderedPropertyInfos = new List<PropertyInfo>();
+        private static Settings Settings;
+
+        // mod uses this map, with the player config, to populate two lists of PropertyInfos
         private static readonly Dictionary<string, PropertyInfo> propertyInfoMap = new Dictionary<string, PropertyInfo>
         {
             {"GainedSkills", AccessTools.Property(typeof(SPScoreboardUnitVM), "GainedSkills")},
@@ -40,26 +41,33 @@ namespace SortedScoreboard
 
         protected override void OnSubModuleLoad()
         {
-            try
-            {
-                harmony.PatchAll(Assembly.GetExecutingAssembly());
-            }
-            catch (Exception ex)
-            {
-                TaleWorlds.Library.Debug.PrintError($"SortedScoreboard encountered an exception: {ex}");
-            }
+            Log("Startup");
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
 
         private static void ConfigureSettings()
         {
-            var readList = File.ReadAllLines("..\\..\\Modules\\SortedScoreboard\\mod_settings.txt").ToList();
-            // fall back to hard coded values if deserialized to null?
-            configOrder = readList.Count == 0 ? configOrder : readList;
-            // create a new list of Comparers from the string input
-            orderedPropertyInfos.Clear();
-            foreach (var config in configOrder)
+            try
             {
-                orderedPropertyInfos.Add(propertyInfoMap[config]);
+                Settings = new Settings(JsonConvert.DeserializeObject<Dictionary<string, List<string>>>
+                    (File.ReadAllText("..\\..\\Modules\\SortedScoreboard\\mod_settings.json")));
+                // create a new list of Comparers from the input
+                PlayerOrderedPropertyInfos.Clear();
+                EnemyOrderedPropertyInfos.Clear();
+                foreach (var column in Settings.PlayerSortOrder)
+                {
+                    PlayerOrderedPropertyInfos.Add(propertyInfoMap[column]);
+                }
+
+                foreach (var column in Settings.EnemySortOrder)
+                {
+                    EnemyOrderedPropertyInfos.Add(propertyInfoMap[column]);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex);
+                Settings = new Settings();
             }
         }
 
@@ -69,12 +77,28 @@ namespace SortedScoreboard
             private static void Postfix(SPScoreboardPartyVM __instance)
             {
                 ConfigureSettings();
-                __instance.Members.Sort(new MultiComparer());
+                var partyBase = (PartyBase) __instance.BattleCombatant;
+                if (partyBase.LeaderHero == null ||
+                    !Clan.PlayerClan.Parties.Contains(partyBase.MobileParty))
+                {
+                    __instance.Members.Sort(new MultiComparer(EnemyOrderedPropertyInfos));
+                }
+                else
+                {
+                    __instance.Members.Sort(new MultiComparer(PlayerOrderedPropertyInfos));
+                }
             }
         }
 
         private class MultiComparer : Comparer<SPScoreboardUnitVM>
         {
+            private readonly List<PropertyInfo> orderedPropertyInfos;
+
+            public MultiComparer(List<PropertyInfo> propertyInfos)
+            {
+                orderedPropertyInfos = propertyInfos;
+            }
+
             public override int Compare(SPScoreboardUnitVM x, SPScoreboardUnitVM y)
             {
                 var result = 0;

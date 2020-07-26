@@ -1,0 +1,16 @@
+{
+    "Player": [
+        "GainedSkills",
+        "ReadyToUpgrade",
+        "Killed",
+        "Wounded",
+        "Kills"
+    ],
+    "Enemy": [
+        "Killed",
+        "Wounded",
+        "Kills",
+        "GainedSkills",
+        "ReadyToUpgrade"
+    ]
+}
