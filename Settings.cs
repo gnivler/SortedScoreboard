@@ -31,7 +31,7 @@ namespace SortedScoreboard
             }
             else
             {
-                PlayerSortOrder = input["Player"];
+                PlayerSortOrder = input["Ally"];
                 EnemySortOrder = input["Enemy"];
             }
         }
